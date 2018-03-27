@@ -19,6 +19,7 @@
 *************************************************************/
 
 #include <avr/io.h>
+#include <util/delay.h>
 
 int main(void)
 {
@@ -26,8 +27,40 @@ int main(void)
 
     while (1) {
 	PORTC |= 1 << PC0;      // Set PC0 to a 1
+	_delay_ms(250);
 	PORTC &= ~(1 << PC0);   // Set PC0 to a 0
+	_delay_ms(250);
     }
 
     return 0;   /* never reached */
 }
+
+
+
+
+/*
+//turn on Row 2, Row 3, turn off row 1
+PORTD |= 1 << PD7;
+PORTD |= 1 << PD6;
+PORTB &= ~(1 << PB0);//PORTB |= 1 << PB0;// Hold Column 1,4,7,* at 1
+if ((PIND & (1 << PD5)) == 0) //1 is pressed, voltage is shorted and goes low
+    {
+      passcode[i] = 1;
+      _delay_ms(5);
+      PORTC |= 1 << PC0;      // Set PC0 to a 1
+      //_delay_ms(250);
+
+    }
+    else
+    {
+      PORTC &= ~(1 << PC0);   // Set PC0 to a 0
+      //_delay_ms(250);
+
+    } //record 1
+
+  if ((PINB & (1 << PB7)) == 0) //4 is pressed
+       {
+        passcode[i] = 4;
+        _delay_ms(5);
+        } //record 1
+*/
