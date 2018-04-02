@@ -20,6 +20,12 @@
 
 #include <avr/io.h>
 #include <util/delay.h>
+int key = 0;
+int state = 0;
+//state = 0 | ENTER PASSWORD
+//state = 1 | HOME SCREEN
+//state = 2 | SEND MONEY
+//etc, add states as needed
 int keypadScan()
   {
     int key;
@@ -55,9 +61,7 @@ int keypadScan()
 
 
         } //record 7
-case defuat
 
-functions
 
 
     PORTD &= ~(1 << PD7);
@@ -112,7 +116,7 @@ functions
         } //record 3
     if ((PINB & (1 << PB7)) == 0) //6 is pressed
           {
-          passcode[i] = 6;
+          key = 6;
           PORTC |= 1 << PC0;
           _delay_ms(200);
           PORTC &= 0 << PC0;
@@ -122,7 +126,7 @@ functions
         } //record 6
     if ((PINB & (1 << PB1)) == 0) //9 is pressed
         {
-          passcode[i] = 9;
+          key = 9;
           PORTC |= 1 << PC0;
           _delay_ms(200);
           PORTC &= 0 << PC0;
@@ -132,15 +136,15 @@ functions
 }
 int main(void)
 {
+  int lastKey;
+  int correct;//correct MUST be 4 when the right numbers are pressed
+  //ENABLE INTERRUPTS TO CALL keypadScan()
  	int passcode[4] = {0 ,0 ,0 ,0};
 	//Putting voltage on these for Output
 	DDRB |= 1 << DDB0; //Column of 1 4 7 *
 	DDRD |= 1 << DDD7; //Column of 2 5 8 0
 	DDRD |= 1 << DDD6; //Column of 3 6 9 #
 	DDRC |= 1 << DDD0; //LED set for output
-
-	//Detecting input
-
   //pull up resistor
   PORTD |= (1<<PD5);
   PORTB |= (1<<PB1);
@@ -149,16 +153,48 @@ int main(void)
 
 while (1)
 {
-if ((passcode[0] == 1))//&& (passcode[1] ==5))&& (passcode[2] == 9) && (passcode[3] ==0))
+  switch(state)
   {
-   PORTC |= 1 << PC0;
-   _delay_ms(200);
-   PORTC &= 0 << PC0;
-   _delay_ms(200);
-   PORTC &= 1 << PC0;
-   _delay_ms(200);
-   PORTC &= 0 << PC0;
+    case 0:
+      //prompt user to begin entering passcode
+      switch(key) // the passcode is 1  5  9  0 then # to enter. Any wrong key tap will
+                  //erase and force the user to begin again
+      {
+        case 0:
+        if (lastKey == 9)
+          {
+            correct++;
+          }
+        else
+        {
+          correct = 0;
+        }
+        lastKey = 0;
+
+
+        case 1:
+        if (lastKey == 0)
+          {
+            correct++;
+          }
+        else
+        {
+          correct = 0;
+        }
+        lastKey = 1;
+
+        case 2:
+        correct = 0;
+        lastKey = 2;
+
+        case 3:
+        correct = 0;
+        lastKey = 3;
+      }
   }
+}
+
+
 }
 
 
