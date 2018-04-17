@@ -24,7 +24,7 @@ uint8_t pn532_recvLen;
 
 // Global variables
 static uint8_t state; // The global state for the async library
-volatile uint8_t irqs; // The number of times INT1 is triggered
+volatile uint8_t irqs; // The number of times INT0 is triggered
 uint8_t (*callback)(uint8_t *, uint8_t) = NULL; // Callback function pointer
 uint8_t (*ackCallback)() = NULL; // Ack callback function pointer
 
@@ -50,11 +50,11 @@ void pn532_init(uint8_t async)
 //	{
     cli(); // Disable interrupts
 
-    // Setup INT1
-    EICRA |= (1<<ISC11) | (0<<ISC10); // Trigger INT1 on falling edge
-    EIMSK |= (1<<INT1); 		// Enable Interrupt Mask for Int1
-    DDRD &= ~(1<<PD3); 	// Set PD3 as input
-    PORTD |= (1<<PD3); 	// Enable PD3 pull-up resistor
+    // Setup INT0
+    EICRA |= (1<<ISC11) | (0<<ISC10); // Trigger INT0 on falling edge
+    EIMSK |= (1<<INT0); 		// Enable Interrupt Mask for Int0
+    DDRD &= ~(1<<PD2); 	// Set PD2 as input
+    PORTD |= (1<<PD2); 	// Enable PD2 pull-up resistor
     irqs = 0;
 
     if (PN532_DEBUG)
@@ -748,22 +748,8 @@ static uint8_t writeCmd(uint8_t * cmd, uint8_t len)
 /**
  * IRQ interrupt vector
  */
-ISR(INT1_vect)
+ISR(INT0_vect)
 {
 //	printf("ISR\n");
     irqs++;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
