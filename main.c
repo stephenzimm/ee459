@@ -5,6 +5,7 @@
 // Serial init
 int state = 0;
 int flag = 0;
+int terminator = 99;
 int sendMoneyFlag = 0;
 volatile int key = 10;
 int correct = 0;//correct MUST be 4 when the right numbers are pressed
@@ -141,21 +142,22 @@ int main(void)
 
 
   ///interuppt code
-    DDRD &= ~(1 << DDD3);     // Clear the PD2 pin
+    DDRD &= ~(1 << DDD3);     // Clear the PD3 pin
     // PD2 (PCINT0 pin) is now an input
     PORTD |= (1 << PORTD3);    // turn On the Pull-up
-    // PD2 is now an input with pull-up enabled
+    // PD3 is now an input with pull-up enabled
     EICRA	=	0x02; //TRIGGER ON FALLING EDGE
     //EICRA |= (1 << ISC00);    // set INT0 to trigger on ANY logic change
     EIMSK |= (1 << INT1);     // Turns on INT1
     sei();
   //////
 
+	//Mux select pin set for output
+	DDRC |= 1 << DDC1;
+	PORTC &= ~(1 << PC1);//Set the mux to 0 for screen
 
-
-
-  //ENABLE INTERRUPTS TO CALL keypadScan()
-
+	//Send flag
+	DDRC |= 1 << DDC5;
 
   // Set all keypad columns as outputs
   DDRB |= 1 << DDB0; // 1,4,7 Column
@@ -308,6 +310,7 @@ while (1)
 			{
 				serial_out(word[i]);
 			}
+
 			//NEW LINE
 			serial_out(0xFE);
 			serial_out(0x45);
@@ -317,12 +320,11 @@ while (1)
 			{
 				serial_out(word1[i]);
 			}
+
+			_delay_ms(1500 );
+			clearscreen();
 			strcpy(word, "2: Send");
 			strcpy(word1, "3: Recieve");
-
-			serial_out(0xFE);
-			serial_out(0x45);
-			serial_out(0x14);
 
 			for(i = 0; word[i] != 0; i++)
 			{
@@ -331,13 +333,20 @@ while (1)
 
 			serial_out(0xFE);
 			serial_out(0x45);
-			serial_out(0x54);
+			serial_out(0x40);
 
 			for(i = 0; word1[i] != 0; i++)
 			{
 				serial_out(word1[i]);
 			}
-
+			strcpy(word, "4: Check Bal");
+			serial_out(0xFE);
+			serial_out(0x45);
+			serial_out(0x14);
+			for(i = 0; word[i] != 0; i++)
+			{
+				serial_out(word[i]);
+			}
 
 			while (key == 0)
 			{
@@ -353,6 +362,10 @@ while (1)
 
 		case 2:
 			{
+				//Tell Rapberry Pi to be ready for dollar amount
+				PORTC |= 1 << PC5;
+
+
 				clearscreen();
 				char word2[] = "Send Money";
 				for(i = 0; word2[i] != 0; i++)
@@ -377,6 +390,7 @@ while (1)
 				{
 					serial_out(word3[i]);
 				}
+
 				sendMoneyFlag = 1;
 				//ISR routine takes car of sending to Pi
 
@@ -388,19 +402,25 @@ while (1)
 				{
 					//do nothing
 				}
+
+
+
 				clearscreen();
-
-
 				strcpy(word3, "Tap for Address Now");
+
 				for(i = 0; word3[i] != 0; i++)
 				{
 					serial_out(word3[i]);
 				}
 
-				//CREATE ROUTINE TO GET ADDRESSS
+				//ISR ROUTINE NEEDS TO GET ADDRESS
 				//ACTIVATE FLAG PIN FOR PI
 				//CHANGE SERIAL MUX
 				//SEND DATA TO PI
+
+
+
+
 
 				_delay_ms(1000);
 				clearscreen();
@@ -426,17 +446,27 @@ while (1)
 				_delay_ms(1000);
 				sendMoneyFlag = 0;
 				state = 1;
+
+				//Tell Rasberry Pi we are done
+				PORTC &= ~(1 << PC5);
 				break;
 			}
-			case 3:
+			case 4:
 				{
 					clearscreen();
-					char word2[] = "State 3";
+					char word2[] = "Check Balance";
 					for(i = 0; word2[i] != 0; i++)
 					{
 						serial_out(word2[i]);
 					}
 					_delay_ms(2000);
+
+					//Activate PC4
+					//Change MUX
+					//accept char array from serial buffer
+
+
+
 					state = 1;
 					break;
 				}
@@ -460,6 +490,12 @@ while (1)
     return 0;   /* never reached */
 }
 
+/*
+ISR(INT0_vect)
+{
+	//Routine for NFC
+}
+*/
 ISR(INT1_vect)
 {
   PORTD |= 1 << PD7;
@@ -608,18 +644,36 @@ ISR(INT1_vect)
 				}
 				if(key==12)
 				{
-					//do nothing
+					//print nothing on #
 				}
 				else
 				{
 				 serial_out(key+48);
 				}
-
-
+				//delay is to ensure anything outputting on serial has finished
+				_delay_ms(10);
+				if(key!=12)
+				{
 				//change MUX
+				PORTC |= 1 << PC1;
 				//send char to PI
+				serial_out(key+48);
+				_delay_ms(10);
 				//Change MUX back
-
+				PORTC &= ~(1 << PC1);
+				}
+				if(key==12)
+				{
+					//ensure nothing is on the serial_in
+					_delay_ms(10);
+					PORTC |= 1 << PC1;
+					//send terminator to PI
+					serial_out(terminator+48);
+					_delay_ms(10);
+					//Change MUX back
+					PORTC &= ~(1 << PC1);
+					_delay_ms(10);
+				}
 
 			}
 
