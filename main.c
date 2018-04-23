@@ -13,6 +13,7 @@ char amountToSend[10];
 int state = 0;
 int flag = 0;
 char homeAddress[10];
+char balance[5];
 int sendMoneyFlag = 0;
 volatile int key = 10;
 int correct = 0;//correct MUST be 4 when the right numbers are pressed
@@ -192,61 +193,13 @@ int main(void)
   PORTB |= (1<<PB1);
   PORTB |= (1<<PB2);
 
-
-
-	/*
-	if (initializationFlag == 0)
-	{
-		state = 10;
-
-	}
-	if (initializationFlag == 1)
-	{
-		state = 0;
-	}
-
-*/
-
 while (1)
 {
 	while(1)
 	{
   switch(state)
   {
-		/*
-		case 10:
-		{
-			serial_out(254);
-			serial_out(81);
-			_delay_ms(10);
-			char word[] = "To begin, create your 4 digit passcode";
-			for(i = 0; word[i] != 0; i++)
-			{
-				serial_out(word[i]);
-			}
-			_delay_ms(500);
 
-			serial_out(254);
-			serial_out(81);
-			_delay_ms(10);
-
-			char word9[] = "Enter the first key";
-			for(i = 0; word9[i] != 0; i++)
-			{
-				serial_out(word9[i]);
-			}
-			while(key==10)
-			{
-
-			}
-			passcodeKey1 = key;
-			serial_out(passcodeKey1+48);
-			_delay_ms(2000);
-			initializationFlag = 1;
-			key = 10;
-			state = 0;
-		}
-		*/
     case 0:
 		{
       //prompt user to begin entering passcode
@@ -263,7 +216,6 @@ while (1)
 
 		 while (correct!=4)
 					{
-						//serial_out(correct+48);
 						_delay_ms(1);
 						passcode();
 					}
@@ -284,7 +236,6 @@ while (1)
 				{
 				serial_out(word1[i]);
 				}
-				//serial_out(word);
 				_delay_ms(300);
 				state = 1;
 				break;
@@ -359,7 +310,7 @@ while (1)
 			{
 				serial_out(word[i]);
 			}
-
+/*
 			strcpy(word, "5: Prgm Addr");
 			serial_out(0xFE);
 			serial_out(0x45);
@@ -368,7 +319,7 @@ while (1)
 			{
 				serial_out(word[i]);
 			}
-
+*/
 
 			while (key == 0)
 			{
@@ -439,8 +390,6 @@ while (1)
 				//ACTIVATE FLAG PIN FOR PI
 				//CHANGE SERIAL MUX
 				//SEND DATA TO PI
-
-
 
 
 
@@ -517,10 +466,23 @@ while (1)
 					_delay_ms(2000);
 
 					//Activate PC4
-					//Change MUX
-					//accept char array from serial buffer
 
-					PORTD &= ~(1 << PD4);
+					//Change MUX
+					PORTC |= 1 << PC1;
+					int l = 0;
+					while(l!=5)
+					{
+						strcat(balance, serial_in());
+						l++;
+					}
+
+					PORTC &= ~(1 << PC1);
+					clearscreen();
+					for(i = 0; balance[i] != 0; i++)
+					{
+						serial_out(balance[i]);
+					}
+					//accept char array from serial buffer
 
 					state = 1;
 					break;
