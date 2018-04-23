@@ -3,9 +3,16 @@
 #include <avr/interrupt.h>
 
 // Serial init
+//const char* first = "1";
+char amountToSend[10];
+//amountToSend = malloc(strlen(first)+1+6);
+//strcpy(amountToSend, first);
+//strcat(amountToSend, "2");
+
+
 int state = 0;
 int flag = 0;
-int terminator = 99;
+char homeAddress[10];
 int sendMoneyFlag = 0;
 volatile int key = 10;
 int correct = 0;//correct MUST be 4 when the right numbers are pressed
@@ -133,6 +140,7 @@ void passcode()
 }
 int main(void)
 {
+
 	int welcomeFlag = 0;
 	int i;
   // Call init sequence
@@ -154,10 +162,14 @@ int main(void)
 
 	//Mux select pin set for output
 	DDRC |= 1 << DDC1;
+	DDRC |= 1 << DDC2;
 	PORTC &= ~(1 << PC1);//Set the mux to 0 for screen
+	PORTC &= ~(1 << PC2);
 
-	//Send flag
-	DDRC |= 1 << DDC5;
+	//Send flag set for output
+	DDRC |= 1 << DDC3;
+	//Set check balance flag for output
+	DDRD |= 1 << DDD4;
 
   // Set all keypad columns as outputs
   DDRB |= 1 << DDB0; // 1,4,7 Column
@@ -263,7 +275,7 @@ while (1)
 					_delay_ms(100);
 					PORTC &= 0 << PC0;
 					_delay_ms(100);
-
+				}
 
 					clearscreen();
 
@@ -273,10 +285,10 @@ while (1)
 				serial_out(word1[i]);
 				}
 				//serial_out(word);
-				_delay_ms(1000);
+				_delay_ms(300);
 				state = 1;
 				break;
-			}
+
 			}
 
 
@@ -294,7 +306,7 @@ while (1)
 			{
 				serial_out(word2[i]);
 			}
-			_delay_ms(1000);
+			_delay_ms(500);
 			welcomeFlag = 1;
 		}
 
@@ -321,7 +333,7 @@ while (1)
 				serial_out(word1[i]);
 			}
 
-			_delay_ms(1500 );
+			_delay_ms(500);
 			clearscreen();
 			strcpy(word, "2: Send");
 			strcpy(word1, "3: Recieve");
@@ -348,6 +360,16 @@ while (1)
 				serial_out(word[i]);
 			}
 
+			strcpy(word, "5: Prgm Addr");
+			serial_out(0xFE);
+			serial_out(0x45);
+			serial_out(0x54);
+			for(i = 0; word[i] != 0; i++)
+			{
+				serial_out(word[i]);
+			}
+
+
 			while (key == 0)
 			{
 
@@ -363,16 +385,16 @@ while (1)
 		case 2:
 			{
 				//Tell Rapberry Pi to be ready for dollar amount
-				PORTC |= 1 << PC5;
-
-
+				PORTC |= 1 << PC3;
+				_delay_ms(10);
+				PORTC &= ~(1 << PC3);
 				clearscreen();
 				char word2[] = "Send Money";
 				for(i = 0; word2[i] != 0; i++)
 				{
 					serial_out(word2[i]);
 				}
-				_delay_ms(1000);
+				_delay_ms(500);
 
 				clearscreen();
 				char word3[] = "Enter the amount";
@@ -433,7 +455,7 @@ while (1)
 				{
 				serial_out(0x2E);
 				_delay_ms(500);
-			}
+				}
 
 
 
@@ -448,11 +470,44 @@ while (1)
 				state = 1;
 
 				//Tell Rasberry Pi we are done
-				PORTC &= ~(1 << PC5);
+
+				break;
+			}
+
+			case 3:
+			{
+				clearscreen();
+				char word10[] = "Receive Money";
+				for(i = 0; word10[i] != 0; i++)
+				{
+					serial_out(word10[i]);
+				}
+				_delay_ms(500);
+				clearscreen();
+				strcpy(word10, "Your Address is: ");
+				for(i = 0; word10[i] != 0; i++)
+				{
+					serial_out(word10[i]);
+				}
+				serial_out(0xFE);
+				serial_out(0x45);
+				serial_out(0x14);
+
+				strcpy(word10, "0X0X0X0X0X ");
+				for(i = 0; word10[i] != 0; i++)
+				{
+					serial_out(word10[i]);
+				}
+				while(key!=12)
+				{
+					//####
+				}
+				state = 0;
 				break;
 			}
 			case 4:
 				{
+					PORTD |= 1 << PD4;
 					clearscreen();
 					char word2[] = "Check Balance";
 					for(i = 0; word2[i] != 0; i++)
@@ -465,7 +520,7 @@ while (1)
 					//Change MUX
 					//accept char array from serial buffer
 
-
+					PORTD &= ~(1 << PD4);
 
 					state = 1;
 					break;
@@ -498,6 +553,12 @@ ISR(INT0_vect)
 */
 ISR(INT1_vect)
 {
+
+
+
+
+
+
   PORTD |= 1 << PD7;
   PORTD |= 1 << PD6;
   PORTB &= ~(1 << PB0);
@@ -507,7 +568,7 @@ ISR(INT1_vect)
 
         key = 1;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
       }
@@ -518,7 +579,7 @@ ISR(INT1_vect)
 
         key = 4;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
       } //record 1
@@ -527,7 +588,7 @@ ISR(INT1_vect)
 
         key = 7;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
 
@@ -537,7 +598,7 @@ ISR(INT1_vect)
 
 				key = 11; //11 will be a period
 				PORTC |= 1 << PC0;
-				_delay_ms(200);
+				_delay_ms(90);
 				PORTC &= 0 << PC0;
 
 
@@ -553,7 +614,7 @@ ISR(INT1_vect)
 
         key = 2;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
 
@@ -563,7 +624,7 @@ ISR(INT1_vect)
 
         key = 5;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
       } //record 5
@@ -572,7 +633,7 @@ ISR(INT1_vect)
 
         key = 8;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
       } //record 8
@@ -581,7 +642,7 @@ ISR(INT1_vect)
 
         key = 0;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
 
@@ -596,7 +657,7 @@ ISR(INT1_vect)
 
         key = 3;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
       } //record 3
@@ -605,7 +666,7 @@ ISR(INT1_vect)
 
         key = 6;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
 
@@ -615,7 +676,7 @@ ISR(INT1_vect)
       {
         key = 9;
         PORTC |= 1 << PC0;
-        _delay_ms(200);
+        _delay_ms(90);
         PORTC &= 0 << PC0;
 
 
@@ -624,11 +685,13 @@ ISR(INT1_vect)
 					{
 					key = 12;
 					PORTC |= 1 << PC0;
-					_delay_ms(200);
+					_delay_ms(90);
 					PORTC &= 0 << PC0;
 
 
 					} //record 9
+
+
 
       PORTD &= ~(1 << PD7);
       PORTD &= ~(1 << PD6);
@@ -639,40 +702,79 @@ ISR(INT1_vect)
 			{
 				if(key == 11)
 				{
+					_delay_ms(10);
+					strcat(amountToSend,".");
+					_delay_ms(10);
+					key = 13;
 					serial_out(0x2E);
-					key = 10;
 				}
+
+
+
 				if(key==12)
 				{
 					//print nothing on #
 				}
-				else
+				if((key!=12) && (key!= 11) && (key!=13))
 				{
 				 serial_out(key+48);
 				}
 				//delay is to ensure anything outputting on serial has finished
 				_delay_ms(10);
-				if(key!=12)
+
+
+
+
+
+				if((key!=12) && (key!= 11) && (key!=13))
 				{
 				//change MUX
+				//PORTC |= 1 << PC2;
 				PORTC |= 1 << PC1;
+				//mux select is now 11
 				//send char to PI
-				serial_out(key+48);
+				//serial_out(key+48);
+				strcat(amountToSend, "A" );
 				_delay_ms(10);
 				//Change MUX back
+				PORTC &= ~(1 << PC2);
 				PORTC &= ~(1 << PC1);
+				//00
 				}
+
+
 				if(key==12)
 				{
+					char DestAddress[] = "0X4RXG67JW3X" ;
 					//ensure nothing is on the serial_in
 					_delay_ms(10);
+					//PORTC |= 1 << PC2;
 					PORTC |= 1 << PC1;
 					//send terminator to PI
-					serial_out(terminator+48);
+					//serial_out(0x21);
+					strcat(amountToSend,"!");
 					_delay_ms(10);
 					//Change MUX back
-					PORTC &= ~(1 << PC1);
+					int i;
+
+
+					for(i = 0; amountToSend[i] != 0; i++)
+					{
+						serial_out(amountToSend[i]);
+					}
+
+					_delay_ms(100);
+
+
+					for(i = 0; DestAddress[i] != 0; i++)
+					{
+						serial_out(DestAddress[i]);
+					}
 					_delay_ms(10);
+					serial_out(0x21);
+					_delay_ms(10);
+					PORTC &= ~(1 << PC2);
+					PORTC &= ~(1 << PC1);
 				}
 
 			}
